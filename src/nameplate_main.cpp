@@ -80,6 +80,20 @@ int main() {
             return -1;
         }
         
+        // Get original camera resolution
+        int original_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+        int original_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+        std::cout << "Original camera resolution: " << original_width << "x" << original_height << std::endl;
+        
+        // Set camera resolution to 720p
+        cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+        
+        // Verify the new resolution
+        int new_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+        int new_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+        std::cout << "Camera resolution set to: " << new_width << "x" << new_height << std::endl;
+        
         // Initialize face detector
         std::string detector_model_path = "../models/RetinaFace_resnet50_320.onnx";
         std::cout << "Initializing face detector..." << std::endl;
@@ -110,7 +124,7 @@ int main() {
         cv::resizeWindow("Face Recognition Test", 1280, 720);
         
         // Configure detection/recognition intervals
-        const int DETECT_INTERVAL = 3;  // Only run detection every 3 frames
+        const int DETECT_INTERVAL = 20;  // Only run detection every 3 frames
         int frame_count = 0;
         
         // Create a vector to store tracked faces
