@@ -32,10 +32,18 @@ target_link_libraries(face_detector_debug
     onnxruntime
 )
 
+# Add face recognizer debug executable
+add_executable(face_recognizer_debug src/face_recognizer_debug.cpp)
+target_link_libraries(face_recognizer_debug
+    ${OpenCV_LIBS}
+    onnxruntime
+)
+
 # Face detection library and test
 add_library(face_core SHARED
     src/face_detector.cpp
     src/face_alignment.cpp
+    src/face_recognizer.cpp
 )
 target_link_libraries(face_core
     ${OpenCV_LIBS}
@@ -48,6 +56,14 @@ target_link_libraries(face_detection_test face_core)
 # Add alignment test executable
 add_executable(face_alignment_test src/face_alignment_test.cpp)
 target_link_libraries(face_alignment_test
+    face_core
+    ${OpenCV_LIBS}
+    onnxruntime
+)
+
+# Face feature extraction and recognition executable
+add_executable(face_recognition_test src/face_recognition_test.cpp)
+target_link_libraries(face_recognition_test
     face_core
     ${OpenCV_LIBS}
     onnxruntime
