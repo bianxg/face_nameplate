@@ -35,6 +35,7 @@ target_link_libraries(face_detector_debug
 # Face detection library and test
 add_library(face_core SHARED
     src/face_detector.cpp
+    src/face_alignment.cpp
 )
 target_link_libraries(face_core
     ${OpenCV_LIBS}
@@ -43,3 +44,11 @@ target_link_libraries(face_core
 
 add_executable(face_detection_test src/face_detection_test.cpp)
 target_link_libraries(face_detection_test face_core)
+
+# Add alignment test executable
+add_executable(face_alignment_test src/face_alignment_test.cpp)
+target_link_libraries(face_alignment_test
+    face_core
+    ${OpenCV_LIBS}
+    onnxruntime
+)
