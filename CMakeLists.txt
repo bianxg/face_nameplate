@@ -68,3 +68,11 @@ target_link_libraries(face_recognition_test
     ${OpenCV_LIBS}
     onnxruntime
 )
+
+# Add batch enrollment executable
+add_executable(batch_enrollment src/batch_enrollment.cpp)
+target_link_libraries(batch_enrollment
+    face_core
+    ${OpenCV_LIBS}
+    onnxruntime
+)

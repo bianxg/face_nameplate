@@ -52,7 +52,7 @@ int main() {
     
     // Create data directories if they don't exist
     std::filesystem::path data_dir = "../data/faces";
-    std::filesystem::path db_file = "../data/face_database.txt";
+    std::filesystem::path db_file = "../data/faces/face_database.txt";
     
     if (!std::filesystem::exists(data_dir)) {
         std::filesystem::create_directories(data_dir);

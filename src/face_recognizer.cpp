@@ -259,7 +259,8 @@ bool FaceRecognizer::saveFaceDatabase(const std::string& file_path) const {
     
     int face_count = 0;
     for (const auto& face : face_database_) {
-        // Create directory for each person if it doesn't exist
+        // Create directory for each person if it doesn't exist - this is the key fix
+        // Ensure we're placing these directories under the same parent directory as the database file
         std::filesystem::path person_dir = base_dir / face.name;
         if (!std::filesystem::exists(person_dir)) {
             std::filesystem::create_directories(person_dir);
