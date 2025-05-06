@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.10)
+project(face_nameplate)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find required packages
+find_package(OpenCV REQUIRED)
+# Update ONNXRuntime path to match your system
+set(ONNX_RUNTIME_DIR "/usr/local")
+
+# Include directories
+include_directories(
+    ${OpenCV_INCLUDE_DIRS}
+    ${ONNX_RUNTIME_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+# Link directories
+link_directories(
+    ${ONNX_RUNTIME_DIR}/lib
+)
+
+# Add executable targets
+add_executable(camera_test src/camera_test.cpp)
+target_link_libraries(camera_test ${OpenCV_LIBS})
+
+add_executable(face_detector_debug src/face_detector_debug.cpp)
+target_link_libraries(face_detector_debug
+    ${OpenCV_LIBS}
+    onnxruntime
+)
+
+# Face detection library and test
+add_library(face_core SHARED
+    src/face_detector.cpp
+)
+target_link_libraries(face_core
+    ${OpenCV_LIBS}
+    onnxruntime
+)
+
+add_executable(face_detection_test src/face_detection_test.cpp)
+target_link_libraries(face_detection_test face_core)
