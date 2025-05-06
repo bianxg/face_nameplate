@@ -23,10 +23,10 @@ void drawRecognitionBox(cv::Mat& image, const std::string& name, float score,
                       text_size.width + 10, text_size.height + 10);
     cv::rectangle(image, text_rect, color, -1);
     
-    // Draw the name text
+    // Draw the name text with black color for better visibility on colored backgrounds
     cv::putText(image, display_text, 
                cv::Point(face_rect.x + 5, face_rect.y - 5),
-               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 1);
 }
 
 int main() {
@@ -37,7 +37,18 @@ int main() {
         return -1;
     }
     
-    std::cout << "Camera opened successfully." << std::endl;
+    // Get and display camera resolution
+    int cam_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    int cam_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+    std::cout << "Camera opened successfully with resolution: " << cam_width << "x" << cam_height << std::endl;
+    
+    // Optional: Set a specific camera resolution
+    // Uncomment these lines to force a specific resolution
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+    // std::cout << "Camera resolution set to: " 
+    //           << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" 
+    //           << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
     
     // Initialize face detector
     std::string detector_model_path = "../models/RetinaFace_resnet50_320.onnx";
@@ -72,6 +83,10 @@ int main() {
     // Create windows for display
     cv::namedWindow("Face Recognition", cv::WINDOW_NORMAL);
     cv::namedWindow("Face Database", cv::WINDOW_NORMAL);
+    
+    // Set initial window sizes
+    cv::resizeWindow("Face Recognition", 1280, 720);
+    cv::resizeWindow("Face Database", 640, 480);
     
     // Flag to control database enrollment mode
     bool enrollment_mode = false;
@@ -159,14 +174,14 @@ int main() {
                            cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
                 
                 cv::putText(display_frame, "Press Enter to confirm, ESC to cancel", cv::Point(10, 60),
-                           cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(200, 200, 200), 1);
+                           cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255), 1); // Brighter text
             } else {
                 cv::putText(display_frame, "ENROLLMENT MODE", cv::Point(10, 30),
-                           cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 165, 255), 2);
+                           cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 200, 255), 2); // Brighter orange
                 
                 cv::putText(display_frame, "Press 'n' to name a face, 'e' to exit enrollment mode", 
                            cv::Point(10, 60),
-                           cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(200, 200, 200), 1);
+                           cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255), 1); // Brighter text
             }
         } else {
             std::string status = "RECOGNITION MODE";
@@ -176,7 +191,7 @@ int main() {
             // Show key commands
             cv::putText(display_frame, "Press 'e' for enrollment mode, 's' to save database, 'q' to quit", 
                        cv::Point(10, 60),
-                       cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(200, 200, 200), 1);
+                       cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255), 1); // Brighter text
         }
         
         // Add inference info
@@ -263,10 +278,23 @@ int main() {
                         if (faces.size() == 1) {
                             cv::Mat aligned_face = aligner.align(frame, faces[0]);
                             if (!aligned_face.empty()) {
+                                // Check if this name already exists in the database
+                                bool overwriting = false;
+                                for (const auto& face : recognizer.getFaces()) {
+                                    if (face.name == enrollment_name) {
+                                        overwriting = true;
+                                        break;
+                                    }
+                                }
+                                
                                 if (recognizer.addFace(enrollment_name, aligned_face)) {
-                                    // Show success message on screen
+                                    // Show success message on screen with appropriate text
                                     cv::Mat success_overlay = display_frame.clone();
-                                    cv::putText(success_overlay, "Successfully enrolled: " + enrollment_name, 
+                                    std::string message = overwriting ? 
+                                        "Updated existing face: " + enrollment_name : 
+                                        "Successfully enrolled: " + enrollment_name;
+                                    
+                                    cv::putText(success_overlay, message, 
                                                cv::Point(display_frame.cols/2 - 150, display_frame.rows/2),
                                                cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
                                     cv::imshow("Face Recognition", success_overlay);
@@ -276,6 +304,11 @@ int main() {
                                     std::string img_path = "../data/faces/" + enrollment_name + "/original.jpg";
                                     std::filesystem::create_directories(std::filesystem::path(img_path).parent_path());
                                     cv::imwrite(img_path, aligned_face);
+                                    
+                                    // Save database immediately if we're updating
+                                    if (overwriting) {
+                                        recognizer.saveFaceDatabase(db_file);
+                                    }
                                 }
                             }
                         } else {
