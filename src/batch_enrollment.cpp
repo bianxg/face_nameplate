@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <regex>
 #include <fstream>
+#include <unordered_map>
+#include <cmath>
 
 // Extract name from filename (remove extension)
 std::string getNameFromFilename(const std::string& filepath) {
@@ -117,6 +119,10 @@ int main(int argc, char* argv[]) {
     for (const auto& face : recognizer.getFaces()) {
         existing_faces[face.name] = true;
     }
+
+    // 存储所有已录入的名字和特征
+    std::vector<std::string> enrolled_names;
+    std::vector<std::vector<float>> enrolled_features;
     
     // Process each image
     for (const auto& image_path : image_files) {
@@ -176,9 +182,12 @@ int main(int argc, char* argv[]) {
             if (aligned_face.empty()) {
                 throw std::runtime_error("Failed to align face");
             }
-            
-            // When processing with multiple model instances, we need to save individual faces
-            // When we're done, we'll create a new database file from all saved faces
+
+            // 提取一次特征并打印
+            std::vector<float> feature = recognizer.extractFeature(aligned_face);
+            std::cout << "  Feature (first 10): ";
+            for (int i = 0; i < 10; ++i) std::cout << feature[i] << " ";
+            std::cout << std::endl;
 
             // Create directory for this person
             std::filesystem::path person_dir = data_dir / name;
@@ -191,7 +200,6 @@ int main(int argc, char* argv[]) {
             cv::imwrite(face_path, aligned_face);
             
             // Extract and save feature data
-            std::vector<float> feature = recognizer.extractFeature(aligned_face);
             std::string feature_path = (person_dir / "feature.bin").string();
             std::ofstream feature_file(feature_path, std::ios::binary);
             if (feature_file.is_open()) {
@@ -201,6 +209,10 @@ int main(int argc, char* argv[]) {
             } else {
                 throw std::runtime_error("Failed to save feature data");
             }
+
+            // 保存特征用于后续距离计算
+            enrolled_names.push_back(name);
+            enrolled_features.push_back(feature);
             
             // Create and save thumbnail
             cv::Mat thumbnail;
@@ -216,6 +228,29 @@ int main(int argc, char* argv[]) {
         } catch (const std::exception& e) {
             std::cout << "  Error: " << e.what() << std::endl;
             errors++;
+        }
+    }
+
+    // 打印每个人与其他人的欧氏距离和余弦相似度
+    std::cout << "\nPairwise feature distance/similarity among enrolled faces:\n";
+    for (size_t i = 0; i < enrolled_names.size(); ++i) {
+        for (size_t j = i + 1; j < enrolled_names.size(); ++j) {
+            // 欧氏距离
+            double l2 = 0.0;
+            for (size_t k = 0; k < enrolled_features[i].size(); ++k) {
+                double diff = enrolled_features[i][k] - enrolled_features[j][k];
+                l2 += diff * diff;
+            }
+            l2 = std::sqrt(l2);
+
+            // 余弦相似度
+            double dot = 0.0;
+            for (size_t k = 0; k < enrolled_features[i].size(); ++k) {
+                dot += enrolled_features[i][k] * enrolled_features[j][k];
+            }
+
+            std::cout << "  " << enrolled_names[i] << " <-> " << enrolled_names[j]
+                      << " | L2: " << l2 << " | Cosine: " << dot << std::endl;
         }
     }
     

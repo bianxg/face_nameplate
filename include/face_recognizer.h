@@ -54,6 +54,9 @@ public:
     // Get inference time in ms
     float getInferenceTime() const { return inference_time_; }
     
+    // Compute the mean feature vector from a list of feature vectors
+    std::vector<float> meanFeature(const std::vector<std::vector<float>>& features) const;
+
 private:
     // ONNX Runtime components
     std::unique_ptr<Ort::Env> env_;

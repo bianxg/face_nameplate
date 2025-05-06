@@ -10,7 +10,9 @@
 void drawRecognitionBox(cv::Mat& image, const std::string& name, float score, 
                        const cv::Rect& face_rect, const cv::Scalar& color) {
     // Draw name and score
-    std::string display_text = name + " (" + std::to_string(int(score * 100)) + "%)";
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%s (%.2f)", name.c_str(), score);
+    std::string display_text = buf;
     int baseline = 0;
     cv::Size text_size = cv::getTextSize(display_text, cv::FONT_HERSHEY_SIMPLEX, 
                                         0.5, 1, &baseline);
@@ -93,6 +95,9 @@ int main() {
     std::string enrollment_name = "";
     bool name_entry_active = false;
     
+    // Set ArcFace recommended recognition threshold
+    float recognition_threshold = 0.5f;
+
     std::cout << "Face recognition system initialized." << std::endl;
     std::cout << "Press 'q' or 'ESC' to quit, 'e' to toggle enrollment mode, 's' to save the database" << std::endl;
     
@@ -137,7 +142,17 @@ int main() {
                 // Normal recognition mode
                 // Extract features and recognize
                 std::vector<float> feature = recognizer.extractFeature(aligned_face);
-                std::pair<std::string, float> result = recognizer.recognize(feature);
+
+                // Debug: Print similarity scores for all database faces
+                const auto& face_db = recognizer.getFaces();
+                std::cout << "Compare scores: ";
+                for (const auto& db_face : face_db) {
+                    float sim = recognizer.compareFaces(feature, db_face.feature);
+                    std::cout << db_face.name << ":" << sim << " ";
+                }
+                std::cout << std::endl;
+
+                std::pair<std::string, float> result = recognizer.recognize(feature, recognition_threshold);
                 
                 // Draw recognition result
                 cv::Scalar color;
@@ -267,6 +282,12 @@ int main() {
                 std::cout << "Recognition mode activated." << std::endl;
                 enrollment_name = "";
             }
+        } else if (key == '+' || key == '=') { // '+' to increase threshold
+            recognition_threshold += 0.02f;
+            std::cout << "Threshold: " << recognition_threshold << std::endl;
+        } else if (key == '-' || key == '_') { // '-' to decrease threshold
+            recognition_threshold -= 0.02f;
+            std::cout << "Threshold: " << recognition_threshold << std::endl;
         }
         
         // Enrollment-specific key handling

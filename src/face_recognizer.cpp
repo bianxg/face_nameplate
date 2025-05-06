@@ -31,6 +31,17 @@ FaceRecognizer::FaceRecognizer(const std::string& model_path) {
         Ort::TypeInfo type_info = session_->GetInputTypeInfo(0);
         auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
         input_shape_ = tensor_info.GetShape();
+
+        // Initialize input dimensions
+        // input_shape_ = {1, 3, H, W}
+        if (input_shape_.size() == 4) {
+            input_height_ = static_cast<int>(input_shape_[2]);
+            input_width_  = static_cast<int>(input_shape_[3]);
+        } else {
+            // fallback
+            input_height_ = 112;
+            input_width_ = 112;
+        }
         
         // From the debug output, we know the feature dimension is 512
         feature_dim_ = 512;
@@ -66,13 +77,13 @@ void FaceRecognizer::preprocess(const cv::Mat& face, float* input_data) {
         resized_face = face;
     }
     
-    // Convert to float and normalize
+    // Convert to float and normalize to [0,1]
     cv::Mat float_mat;
     resized_face.convertTo(float_mat, CV_32FC3, 1.0/255.0);
-    
-    // Subtract mean and divide by standard deviation
-    // For ArcFace-like models, typically just normalize to [0,1] range
-    
+
+    // ArcFace标准归一化: (x - 0.5) / 0.5 = x * 2 - 1
+    float_mat = float_mat * 2.0f - 1.0f;
+
     // Reorder from BGR to RGB if needed and copy to input buffer
     // NCHW layout: [batch, channels, height, width]
     for (int c = 0; c < 3; c++) {
@@ -120,16 +131,41 @@ std::vector<float> FaceRecognizer::extractFeature(const cv::Mat& aligned_face) {
     if (!outputs.empty()) {
         float* output_data = outputs[0].GetTensorMutableData<float>();
         auto output_dims = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
-        
+
+        // 调试：打印输出shape
+        std::cout << "Model output shape: [";
+        for (size_t i = 0; i < output_dims.size(); ++i) {
+            std::cout << output_dims[i];
+            if (i != output_dims.size() - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+
         size_t feature_size = 1;
         for (auto& dim : output_dims) {
             feature_size *= dim;
         }
-        
+
         feature.assign(output_data, output_data + feature_size);
-        
+
+        // 调试：归一化前L2范数
+        float norm = 0.0f;
+        for (auto v : feature) norm += v * v;
+        norm = std::sqrt(norm);
+        std::cout << "Feature L2 norm before normalize: " << norm << std::endl;
+
         // Normalize the feature vector
         normalizeFeature(feature);
+
+        // 调试：归一化后特征值和L2范数
+        std::cout << "Feature (first 10, after normalize): ";
+        for (size_t i = 0; i < std::min(feature.size(), size_t(10)); ++i) {
+            std::cout << feature[i] << " ";
+        }
+        std::cout << std::endl;
+        float norm2 = 0.0f;
+        for (auto v : feature) norm2 += v * v;
+        norm2 = std::sqrt(norm2);
+        std::cout << "Feature L2 norm after normalize: " << norm2 << std::endl;
     }
     
     return feature;
@@ -150,6 +186,20 @@ void FaceRecognizer::normalizeFeature(std::vector<float>& feature) const {
     }
 }
 
+// 新增：计算多张特征的均值并归一化
+std::vector<float> FaceRecognizer::meanFeature(const std::vector<std::vector<float>>& features) const {
+    if (features.empty()) return {};
+    std::vector<float> mean(features[0].size(), 0.0f);
+    for (const auto& feat : features) {
+        for (size_t i = 0; i < feat.size(); ++i) {
+            mean[i] += feat[i];
+        }
+    }
+    for (auto& v : mean) v /= features.size();
+    normalizeFeature(mean);
+    return mean;
+}
+
 float FaceRecognizer::compareFaces(
     const std::vector<float>& feature1, 
     const std::vector<float>& feature2) const {
@@ -164,8 +214,8 @@ float FaceRecognizer::compareFaces(
         dot_product += feature1[i] * feature2[i];
     }
     
-    // Since features are normalized, dot product is cosine similarity
-    return std::max(0.0f, std::min(1.0f, dot_product));
+    // 直接返回余弦相似度，不做裁剪
+    return dot_product;
 }
 
 bool FaceRecognizer::addFace(const std::string& name, const cv::Mat& aligned_face) {
