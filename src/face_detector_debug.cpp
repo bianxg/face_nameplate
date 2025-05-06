@@ -83,19 +83,5 @@ int main(int argc, char* argv[]) {
     std::cout << "Model Analysis Tool\nCurrent working directory: " << std::filesystem::current_path() << std::endl;
     printModelInfo(model_path);
     
-    // If there's a second argument, analyze the face recognition model
-    if (argc > 2) {
-        std::string face_recognition_model = argv[2];
-        std::cout << "\nAnalyzing face recognition model: " << face_recognition_model << std::endl;
-        printModelInfo(face_recognition_model);
-    } else {
-        // Also analyze the default face recognition model
-        std::string face_recognition_model = "../models/resnet100.onnx";
-        if (std::filesystem::exists(face_recognition_model)) {
-            std::cout << "\nAnalyzing face recognition model: " << face_recognition_model << std::endl;
-            printModelInfo(face_recognition_model);
-        }
-    }
-    
     return 0;
 }
