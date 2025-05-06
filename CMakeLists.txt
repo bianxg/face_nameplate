@@ -76,3 +76,11 @@ target_link_libraries(batch_enrollment
     ${OpenCV_LIBS}
     onnxruntime
 )
+
+# Electronic Nameplate main application
+add_executable(nameplate_main src/nameplate_main.cpp)
+target_link_libraries(nameplate_main
+    face_core
+    ${OpenCV_LIBS}
+    onnxruntime
+)
