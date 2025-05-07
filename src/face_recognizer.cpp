@@ -81,7 +81,7 @@ void FaceRecognizer::preprocess(const cv::Mat& face, float* input_data) {
     cv::Mat float_mat;
     resized_face.convertTo(float_mat, CV_32FC3, 1.0/255.0);
 
-    // ArcFace标准归一化: (x - 0.5) / 0.5 = x * 2 - 1
+    // ArcFace standard normalization: (x - 0.5) / 0.5 = x * 2 - 1
     float_mat = float_mat * 2.0f - 1.0f;
 
     // Reorder from BGR to RGB if needed and copy to input buffer
@@ -132,7 +132,7 @@ std::vector<float> FaceRecognizer::extractFeature(const cv::Mat& aligned_face) {
         float* output_data = outputs[0].GetTensorMutableData<float>();
         auto output_dims = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
 
-        // 调试：打印输出shape
+        // Debug: print output shape
         std::cout << "Model output shape: [";
         for (size_t i = 0; i < output_dims.size(); ++i) {
             std::cout << output_dims[i];
@@ -147,16 +147,19 @@ std::vector<float> FaceRecognizer::extractFeature(const cv::Mat& aligned_face) {
 
         feature.assign(output_data, output_data + feature_size);
 
-        // 调试：归一化前L2范数
+        // Debug: L2 norm before normalization
+#if 0
         float norm = 0.0f;
         for (auto v : feature) norm += v * v;
         norm = std::sqrt(norm);
         std::cout << "Feature L2 norm before normalize: " << norm << std::endl;
+#endif
 
         // Normalize the feature vector
         normalizeFeature(feature);
 
-        // 调试：归一化后特征值和L2范数
+        // Debug: feature values and L2 norm after normalization
+#if 0
         std::cout << "Feature (first 10, after normalize): ";
         for (size_t i = 0; i < std::min(feature.size(), size_t(10)); ++i) {
             std::cout << feature[i] << " ";
@@ -166,6 +169,7 @@ std::vector<float> FaceRecognizer::extractFeature(const cv::Mat& aligned_face) {
         for (auto v : feature) norm2 += v * v;
         norm2 = std::sqrt(norm2);
         std::cout << "Feature L2 norm after normalize: " << norm2 << std::endl;
+#endif
     }
     
     return feature;
@@ -179,14 +183,14 @@ void FaceRecognizer::normalizeFeature(std::vector<float>& feature) const {
     }
     norm = std::sqrt(norm);
     
-    if (norm > 0) {
+    if (norm > 1e-6f) {
         for (auto& val : feature) {
             val /= norm;
         }
     }
 }
 
-// 新增：计算多张特征的均值并归一化
+// Added: Calculate the mean of multiple features and normalize it
 std::vector<float> FaceRecognizer::meanFeature(const std::vector<std::vector<float>>& features) const {
     if (features.empty()) return {};
     std::vector<float> mean(features[0].size(), 0.0f);
@@ -214,7 +218,7 @@ float FaceRecognizer::compareFaces(
         dot_product += feature1[i] * feature2[i];
     }
     
-    // 直接返回余弦相似度，不做裁剪
+    // Directly return the cosine similarity without clipping
     return dot_product;
 }
 

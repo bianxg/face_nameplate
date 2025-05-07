@@ -31,3 +31,38 @@ Output #2: Name=818 Dimensions=[1,4200,10]
 - **818** [1,4200,10]:
   - 包含4200个候选框的面部关键点信息
   - 每个框有10个值，通常表示5个关键点（眼睛、鼻子、嘴角）的x和y坐标
+
+./face_recognizer_debug
+Face Recognition Model Analysis Tool
+Analyzing face recognition model: ../models/arcfaceresnet100-8.onnx
+Number of input nodes: 1
+Input #0: Name=data Dimensions=[1,3,112,112]
+Number of output nodes: 1
+Output #0: Name=fc1 Dimensions=[1,512]
+Input #0 (data) data type: float
+Output #0 (fc1) data type: float
+
+## 模型信息参数解释 - arcfaceresnet100-8.onnx
+
+### 模型概述
+- **arcfaceresnet100-8.onnx**: 这是一个基于ResNet100架构的ArcFace人脸识别模型。ArcFace通过添加角度间隔（angular margin）来增强特征判别能力，是目前高性能人脸识别的主流算法之一。
+
+### 输入节点解释
+- **data** [1,3,112,112]:
+  - 第一维"1"表示批处理大小（batch size），即一次处理一张人脸图片
+  - 第二维"3"表示输入图像的通道数，即RGB三通道
+  - 第三维和第四维"112,112"表示输入人脸图像的高度和宽度（像素）
+  - 数据类型：float（浮点型）
+
+### 输出节点解释
+- **fc1** [1,512]:
+  - 包含一个512维的特征向量（face embedding）
+  - 这个特征向量是人脸的高维表示，用于人脸比对和识别
+  - 通常使用余弦相似度（cosine similarity）来比较两个特征向量的相似度
+  - 数据类型：float（浮点型）
+  
+### 使用流程
+1. 人脸检测后，将检测到的人脸区域裁剪并调整为112×112像素
+2. 将图像输入到模型中，获取512维特征向量
+3. 通过计算特征向量之间的相似度来进行人脸验证或识别
+

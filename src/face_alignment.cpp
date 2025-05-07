@@ -76,18 +76,24 @@ cv::Mat FaceAlignment::getSimilarityTransform(
             src_centered.push_back(src[i] - src_centroid);
             dst_centered.push_back(dst[i] - dst_centroid);
         }
-        
+
         // Calculate the parameters of similarity transform:
         // scale, rotation, and translation
         float a = 0, b = 0;
-        for (size_t i = 0; i < src_centered.size(); i++) {
+        for (size_t i = 0; i < src_centered.size(); i++)
+        {
             a += src_centered[i].x * dst_centered[i].x + src_centered[i].y * dst_centered[i].y;
             b += src_centered[i].y * dst_centered[i].x - src_centered[i].x * dst_centered[i].y;
         }
-        
-        float scale = std::sqrt(a*a + b*b);
+        float norm_squared = 0;
+        for (const auto &p : src_centered)
+        {
+            norm_squared += p.x * p.x + p.y * p.y;
+        }
+
+        float scale = std::sqrt(a * a + b * b) / norm_squared;
         float theta = std::atan2(b, a);
-        
+
         // Create 2x3 transformation matrix
         transform = cv::Mat::zeros(2, 3, CV_32F);
         transform.at<float>(0, 0) = std::cos(theta) * scale;

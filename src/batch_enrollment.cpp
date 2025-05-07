@@ -143,19 +143,7 @@ int main(int argc, char* argv[]) {
             if (image.empty()) {
                 throw std::runtime_error("Failed to load image");
             }
-            
-            // Resize large images
-            const int MAX_DIMENSION = 1200;
-            if (image.cols > MAX_DIMENSION || image.rows > MAX_DIMENSION) {
-                double scale = std::min(
-                    static_cast<double>(MAX_DIMENSION) / image.cols,
-                    static_cast<double>(MAX_DIMENSION) / image.rows
-                );
-                
-                cv::resize(image, image, cv::Size(), scale, scale);
-                std::cout << "  Resized image to " << image.cols << "x" << image.rows << std::endl;
-            }
-            
+
             // Detect faces
             std::vector<FaceInfo> faces = detector.detect(image);
             
@@ -231,18 +219,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // 打印每个人与其他人的欧氏距离和余弦相似度
-    std::cout << "\nPairwise feature distance/similarity among enrolled faces:\n";
+    // 打印每个人与其他人的余弦相似度
+    std::cout << "\nPairwise feature similarity among enrolled faces:\n";
     for (size_t i = 0; i < enrolled_names.size(); ++i) {
         for (size_t j = i + 1; j < enrolled_names.size(); ++j) {
-            // 欧氏距离
-            double l2 = 0.0;
-            for (size_t k = 0; k < enrolled_features[i].size(); ++k) {
-                double diff = enrolled_features[i][k] - enrolled_features[j][k];
-                l2 += diff * diff;
-            }
-            l2 = std::sqrt(l2);
-
             // 余弦相似度
             double dot = 0.0;
             for (size_t k = 0; k < enrolled_features[i].size(); ++k) {
@@ -250,7 +230,7 @@ int main(int argc, char* argv[]) {
             }
 
             std::cout << "  " << enrolled_names[i] << " <-> " << enrolled_names[j]
-                      << " | L2: " << l2 << " | Cosine: " << dot << std::endl;
+                      << " | Cosine: " << dot << std::endl;
         }
     }
     

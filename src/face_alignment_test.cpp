@@ -16,7 +16,7 @@ int main() {
     std::cout << "Camera opened successfully." << std::endl;
     
     // Initialize face detector
-    std::string model_path = "../models/RetinaFace_resnet50_320.onnx";
+    std::string model_path = "../models/RetinaFace_mobile320.onnx";
     FaceDetector detector(model_path);
     
     // Initialize face alignment
