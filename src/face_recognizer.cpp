@@ -77,21 +77,36 @@ void FaceRecognizer::preprocess(const cv::Mat& face, float* input_data) {
         resized_face = face;
     }
     
-    // Convert to float and normalize to [0,1]
+    // Convert to CV_32FC3
     cv::Mat float_mat;
-    resized_face.convertTo(float_mat, CV_32FC3, 1.0/255.0);
+    resized_face.convertTo(float_mat, CV_32FC3); // Now float_mat is in range [0, 255]
 
-    // ArcFace standard normalization: (x - 0.5) / 0.5 = x * 2 - 1
-    float_mat = float_mat * 2.0f - 1.0f;
+    // Debug: Log stats of float_mat before ONNX-specific normalization
+    double min_val_0_255, max_val_0_255;
+    cv::minMaxLoc(float_mat, &min_val_0_255, &max_val_0_255);
+    cv::Scalar mean_val_0_255 = cv::mean(float_mat);
+    std::cout << "[DEBUG] preprocess: float_mat (original range 0-255) - Min: " << min_val_0_255 << ", Max: " << max_val_0_255
+              << ", Mean B: " << mean_val_0_255[0] << ", G: " << mean_val_0_255[1] << ", R: " << mean_val_0_255[2] << std::endl;
 
-    // Reorder from BGR to RGB if needed and copy to input buffer
+    // Normalize according to ArcFace ONNX model documentation: (pixel - 127.5) / 128.0
+    // This means: scale = 1.0f/128.0f, shift = -127.5f/128.0f
+    float_mat.convertTo(float_mat, CV_32FC3, 1.0f/128.0f, -127.5f/128.0f);
+
+    // Debug: Log stats of float_mat after ONNX-specific normalization (expected range approx. [-0.996, 0.996])
+    double min_val_norm, max_val_norm;
+    cv::minMaxLoc(float_mat, &min_val_norm, &max_val_norm);
+    cv::Scalar mean_val_norm = cv::mean(float_mat);
+    std::cout << "[DEBUG] preprocess: float_mat (normalized range ~[-1,1]) - Min: " << min_val_norm << ", Max: " << max_val_norm
+              << ", Mean B: " << mean_val_norm[0] << ", G: " << mean_val_norm[1] << ", R: " << mean_val_norm[2] << std::endl;
+
+    // Reorder to NCHW layout and ensure BGR channel order for the model
     // NCHW layout: [batch, channels, height, width]
-    for (int c = 0; c < 3; c++) {
+    // Model expects BGR, and OpenCV Mat is BGR by default.
+    for (int c = 0; c < 3; c++) { // c=0 (Blue), c=1 (Green), c=2 (Red)
         for (int h = 0; h < input_height_; h++) {
             for (int w = 0; w < input_width_; w++) {
-                // For RGB order (most face recognition models)
                 input_data[c * input_height_ * input_width_ + h * input_width_ + w] = 
-                    float_mat.at<cv::Vec3f>(h, w)[2 - c]; // BGR to RGB
+                    float_mat.at<cv::Vec3f>(h, w)[c]; // BGR order
             }
         }
     }
@@ -103,18 +118,27 @@ std::vector<float> FaceRecognizer::extractFeature(const cv::Mat& aligned_face) {
         return {};
     }
     
+    std::cout << "[DEBUG] extractFeature: Input aligned_face - rows: " << aligned_face.rows 
+              << ", cols: " << aligned_face.cols << ", type: " << aligned_face.type() << std::endl;
+
     auto start = std::chrono::high_resolution_clock::now();
     
     // Prepare input data
-    std::vector<float> input_data(input_width_ * input_height_ * 3);
-    preprocess(aligned_face, input_data.data());
+    std::vector<float> input_data_vec(input_width_ * input_height_ * 3); // Renamed to avoid conflict
+    preprocess(aligned_face, input_data_vec.data());
     
+    std::cout << "[DEBUG] extractFeature: Preprocessed input_data (first 10 values): ";
+    for (size_t i = 0; i < std::min(input_data_vec.size(), size_t(10)); ++i) {
+        std::cout << input_data_vec[i] << " ";
+    }
+    std::cout << std::endl;
+
     // Create input tensor
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
     
     std::vector<int64_t> input_dims = {1, 3, input_height_, input_width_};
     Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-        memory_info, input_data.data(), input_data.size(), 
+        memory_info, input_data_vec.data(), input_data_vec.size(), 
         input_dims.data(), input_dims.size());
     
     // Run inference
@@ -125,15 +149,15 @@ std::vector<float> FaceRecognizer::extractFeature(const cv::Mat& aligned_face) {
     
     auto end = std::chrono::high_resolution_clock::now();
     inference_time_ = std::chrono::duration<float, std::milli>(end - start).count();
+    std::cout << "[DEBUG] extractFeature: Inference time: " << inference_time_ << " ms" << std::endl;
     
     // Extract output data
     std::vector<float> feature;
     if (!outputs.empty()) {
-        float* output_data = outputs[0].GetTensorMutableData<float>();
+        float* raw_output_data = outputs[0].GetTensorMutableData<float>();
         auto output_dims = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
 
-        // Debug: print output shape
-        std::cout << "Model output shape: [";
+        std::cout << "[DEBUG] extractFeature: Model output shape: [";
         for (size_t i = 0; i < output_dims.size(); ++i) {
             std::cout << output_dims[i];
             if (i != output_dims.size() - 1) std::cout << ", ";
@@ -142,34 +166,52 @@ std::vector<float> FaceRecognizer::extractFeature(const cv::Mat& aligned_face) {
 
         size_t feature_size = 1;
         for (auto& dim : output_dims) {
+            if (dim <= 0) { // Check for non-positive dimensions
+                std::cerr << "[ERROR] extractFeature: Output dimension is non-positive: " << dim << std::endl;
+                return {};
+            }
             feature_size *= dim;
         }
+        
+        if (feature_size == 0) {
+             std::cerr << "[ERROR] extractFeature: Calculated feature_size is zero." << std::endl;
+             return {};
+        }
+        if (feature_size != feature_dim_) {
+            std::cout << "[WARNING] extractFeature: Model output feature size (" << feature_size 
+                      << ") does not match expected feature_dim_ (" << feature_dim_ 
+                      << "). Using model output size." << std::endl;
+        }
 
-        feature.assign(output_data, output_data + feature_size);
 
-        // Debug: L2 norm before normalization
-#if 0
-        float norm = 0.0f;
-        for (auto v : feature) norm += v * v;
-        norm = std::sqrt(norm);
-        std::cout << "Feature L2 norm before normalize: " << norm << std::endl;
-#endif
+        feature.assign(raw_output_data, raw_output_data + feature_size);
 
-        // Normalize the feature vector
-        normalizeFeature(feature);
-
-        // Debug: feature values and L2 norm after normalization
-#if 0
-        std::cout << "Feature (first 10, after normalize): ";
+        std::cout << "[DEBUG] extractFeature: Raw feature (first 10 values before normalization): ";
         for (size_t i = 0; i < std::min(feature.size(), size_t(10)); ++i) {
             std::cout << feature[i] << " ";
         }
         std::cout << std::endl;
+
+        float raw_norm = 0.0f;
+        for (auto v : feature) raw_norm += v * v;
+        raw_norm = std::sqrt(raw_norm);
+        std::cout << "[DEBUG] extractFeature: Raw feature L2 norm before normalizeFeature call: " << raw_norm << std::endl;
+
+        // Normalize the feature vector
+        normalizeFeature(feature);
+
+        std::cout << "[DEBUG] extractFeature: Normalized feature (first 10 values): ";
+        for (size_t i = 0; i < std::min(feature.size(), size_t(10)); ++i) {
+            std::cout << feature[i] << " ";
+        }
+        std::cout << std::endl;
+        
         float norm2 = 0.0f;
         for (auto v : feature) norm2 += v * v;
         norm2 = std::sqrt(norm2);
-        std::cout << "Feature L2 norm after normalize: " << norm2 << std::endl;
-#endif
+        std::cout << "[DEBUG] extractFeature: Normalized feature L2 norm: " << norm2 << std::endl;
+    } else {
+        std::cerr << "[ERROR] extractFeature: Model outputs vector is empty." << std::endl;
     }
     
     return feature;
@@ -183,14 +225,17 @@ void FaceRecognizer::normalizeFeature(std::vector<float>& feature) const {
     }
     norm = std::sqrt(norm);
     
+    std::cout << "[DEBUG] normalizeFeature: Calculated L2 norm for normalization: " << norm << std::endl;
+
     if (norm > 1e-6f) {
         for (auto& val : feature) {
             val /= norm;
         }
+    } else {
+        std::cout << "[DEBUG] normalizeFeature: Norm is too small, skipping division." << std::endl;
     }
 }
 
-// Added: Calculate the mean of multiple features and normalize it
 std::vector<float> FaceRecognizer::meanFeature(const std::vector<std::vector<float>>& features) const {
     if (features.empty()) return {};
     std::vector<float> mean(features[0].size(), 0.0f);

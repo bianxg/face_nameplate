@@ -19,7 +19,7 @@ mkdir -p project/face/doc
 
 模型下载地址
 https://gitee.com/wirelesser/rknn_model_zoo/blob/main/examples/RetinaFace/README.md
-https://github.com/onnx/models/tree/main/validated/vision/body_analysis/arcface/model
+https://github.com/onnx/models/tree/main/validated/vision/body_analysis/arcface
 
 1. RetinaFace_resnet50_320.onnx - 用于人脸检测和关键点定位
 2. arcfaceresnet100-8.onnx - 用于人脸特征提取和识别
