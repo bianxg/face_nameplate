@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     
     // Initialize models
     std::string detector_model = "../models/RetinaFace_resnet50_320.onnx";
-    std::string recognizer_model = "../models/face_recognition.onnx";
+    std::string recognizer_model = "../models/arcfaceresnet100-8.onnx";
     
     std::cout << "Initializing face detection and recognition models..." << std::endl;
     

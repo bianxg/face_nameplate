@@ -132,7 +132,7 @@ Controls:
 
 The system requires two ONNX models:
 1. `RetinaFace_resnet50_320.onnx` - For face detection and landmark location
-2. `face_recognition.onnx` - For face recognition (feature extraction)
+2. `arcfaceresnet100-8.onnx` - For face recognition (feature extraction)
 
 Place these models in the `models/` directory before running the applications.
 
