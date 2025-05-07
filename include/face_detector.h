@@ -22,7 +22,7 @@ public:
     ~FaceDetector();
     
     // Detect faces in the given image
-    std::vector<FaceInfo> detect(const cv::Mat& image, float conf_threshold = 0.7, float nms_threshold = 0.4);
+    std::vector<FaceInfo> detect(const cv::Mat& image, float conf_threshold = 0.7, float nms_threshold = 0.4, int max_faces = 0);
     
     // Get the last processing time in milliseconds
     float getInferenceTime() const { return inference_time_; }
@@ -65,7 +65,8 @@ private:
         const std::vector<float>& landms_data,
         float conf_threshold,
         float nms_threshold,
-        const cv::Size& original_size);
+        const cv::Size& original_size,
+        int max_faces = 0);
     
     // Generate prior/anchor boxes
     std::vector<std::vector<float>> priorbox_;

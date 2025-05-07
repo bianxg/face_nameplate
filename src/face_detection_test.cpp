@@ -15,7 +15,8 @@ int main() {
     std::cout << "Camera opened successfully." << std::endl;
     
     // Initialize face detector
-    std::string model_path = "../models/RetinaFace_resnet50_320.onnx";
+    //std::string model_path = "../models/RetinaFace_resnet50_320.onnx"; // Interence time 100ms
+    std::string model_path = "../models/RetinaFace_mobile320.onnx"; // Interence time 10ms
     FaceDetector detector(model_path);
     
     std::cout << "Face detector initialized. Press 'q' to quit, 's' to save frame." << std::endl;
@@ -39,7 +40,7 @@ int main() {
         auto start = std::chrono::high_resolution_clock::now();
         
         // Detect faces
-        std::vector<FaceInfo> faces = detector.detect(frame);
+        std::vector<FaceInfo> faces = detector.detect(frame,0.7, 0.4, 10);
         
         // Record end time and calculate FPS
         auto end = std::chrono::high_resolution_clock::now();

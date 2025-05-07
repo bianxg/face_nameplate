@@ -53,7 +53,7 @@ int main() {
     //           << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
     
     // Initialize face detector
-    std::string detector_model_path = "../models/RetinaFace_resnet50_320.onnx";
+    std::string detector_model_path = "../models/RetinaFace_mobile320.onnx";
     FaceDetector detector(detector_model_path);
     
     // Initialize face alignment

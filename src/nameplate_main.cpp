@@ -95,7 +95,7 @@ int main() {
         std::cout << "Camera resolution set to: " << new_width << "x" << new_height << std::endl;
         
         // Initialize face detector
-        std::string detector_model_path = "../models/RetinaFace_resnet50_320.onnx";
+        std::string detector_model_path = "../models/RetinaFace_mobile320.onnx";
         std::cout << "Initializing face detector..." << std::endl;
         FaceDetector detector(detector_model_path);
         

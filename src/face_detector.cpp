@@ -64,7 +64,7 @@ FaceDetector::~FaceDetector() {
     // Smart pointers will clean up automatically
 }
 
-std::vector<FaceInfo> FaceDetector::detect(const cv::Mat& image, float conf_threshold, float nms_threshold) {
+std::vector<FaceInfo> FaceDetector::detect(const cv::Mat& image, float conf_threshold, float nms_threshold, int max_faces) {
     if (image.empty()) {
         std::cerr << "Error: Empty image provided for detection" << std::endl;
         return {};
@@ -117,7 +117,7 @@ std::vector<FaceInfo> FaceDetector::detect(const cv::Mat& image, float conf_thre
     inference_time_ = std::chrono::duration<float, std::milli>(end - start).count();
     
     // Apply post-processing
-    return postprocess(loc_data, conf_data, landms_data, conf_threshold, nms_threshold, image.size());
+    return postprocess(loc_data, conf_data, landms_data, conf_threshold, nms_threshold, image.size(), max_faces);
 }
 
 void FaceDetector::preprocess(const cv::Mat& image, float* input_data) {
@@ -195,7 +195,8 @@ std::vector<FaceInfo> FaceDetector::postprocess(
     const std::vector<float>& landms_data,
     float conf_threshold,
     float nms_threshold,
-    const cv::Size& original_size) {
+    const cv::Size& original_size,
+    int max_faces) {
     
     std::vector<FaceInfo> face_list;
     
@@ -268,6 +269,10 @@ std::vector<FaceInfo> FaceDetector::postprocess(
     std::vector<FaceInfo> result;
     for (int idx : keep_indices) {
         result.push_back(face_list[idx]);
+        // If we've reached the maximum number of faces, stop adding more
+        if (max_faces > 0 && result.size() >= static_cast<size_t>(max_faces)) {
+            break;
+        }
     }
     
     return result;
