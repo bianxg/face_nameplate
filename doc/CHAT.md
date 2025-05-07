@@ -1,8 +1,8 @@
-# 电子铭牌系统开发指南
+# Electronic Nameplate System Development Guide
 
-## 0. 项目初始化与框架设置
+## 0. Project Initialization and Framework Setup
 
-首先，创建基本的项目目录结构：
+First, create the basic project directory structure:
 
 ```bash
 mkdir -p project/face/src
@@ -13,16 +13,16 @@ mkdir -p project/face/data
 mkdir -p project/face/doc
 ```
 
-创建基本的CMake配置文件，支持OpenCV和ONNX Runtime：
+Create a basic CMake configuration file to support OpenCV and ONNX Runtime:
 
-## 1. 模型分析与诊断
+## 1. Model Analysis and Diagnosis
 
-在开始开发之前，创建一个模型诊断工具来分析ONNX模型的结构，这对于理解模型输入输出非常重要。
+Before starting development, create a model diagnostic tool to analyze the structure of ONNX models, which is crucial for understanding model inputs and outputs.
 
-创建 `face_detector_debug.cpp` 用于分析模型结构：
+Create `face_detector_debug.cpp` for model structure analysis:
 
 ```cpp
-// 在src/face_detector_debug.cpp中
+// In src/face_detector_debug.cpp
 #include <iostream>
 #include <filesystem>
 #include <onnxruntime_cxx_api.h>
@@ -30,21 +30,21 @@ mkdir -p project/face/doc
 void printModelInfo(const std::string& model_path) {
     try {
         if (!std::filesystem::exists(model_path)) {
-            std::cerr << "模型文件不存在: " << model_path << std::endl;
+            std::cerr << "Model file does not exist: " << model_path << std::endl;
             return;
         }
         
-        std::cout << "正在分析模型: " << model_path << std::endl;
+        std::cout << "Analyzing model: " << model_path << std::endl;
         
-        // 初始化ONNX Runtime环境
+        // Initialize ONNX Runtime environment
         Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ModelAnalyzer");
         Ort::SessionOptions session_options;
         Ort::Session session(env, model_path.c_str(), session_options);
         
-        // 获取输入信息
+        // Get input information
         Ort::AllocatorWithDefaultOptions allocator;
         size_t num_input_nodes = session.GetInputCount();
-        std::cout << "输入节点数量: " << num_input_nodes << std::endl;
+        std::cout << "Number of input nodes: " << num_input_nodes << std::endl;
         
         for (size_t i = 0; i < num_input_nodes; i++) {
             char* input_name = session.GetInputName(i, allocator);
@@ -53,8 +53,8 @@ void printModelInfo(const std::string& model_path) {
             
             std::vector<int64_t> input_dims = tensor_info.GetShape();
             
-            std::cout << "输入 #" << i << ": 名称=" << input_name;
-            std::cout << " 维度=[";
+            std::cout << "Input #" << i << ": Name=" << input_name;
+            std::cout << " Dimensions=[";
             for (size_t j = 0; j < input_dims.size(); j++) {
                 if (j > 0) std::cout << ",";
                 std::cout << input_dims[j];
@@ -64,9 +64,9 @@ void printModelInfo(const std::string& model_path) {
             allocator.Free(input_name);
         }
         
-        // 获取输出信息
+        // Get output information
         size_t num_output_nodes = session.GetOutputCount();
-        std::cout << "输出节点数量: " << num_output_nodes << std::endl;
+        std::cout << "Number of output nodes: " << num_output_nodes << std::endl;
         
         for (size_t i = 0; i < num_output_nodes; i++) {
             char* output_name = session.GetOutputName(i, allocator);
@@ -75,8 +75,8 @@ void printModelInfo(const std::string& model_path) {
             
             std::vector<int64_t> output_dims = tensor_info.GetShape();
             
-            std::cout << "输出 #" << i << ": 名称=" << output_name;
-            std::cout << " 维度=[";
+            std::cout << "Output #" << i << ": Name=" << output_name;
+            std::cout << " Dimensions=[";
             for (size_t j = 0; j < output_dims.size(); j++) {
                 if (j > 0) std::cout << ",";
                 std::cout << output_dims[j];
@@ -87,31 +87,31 @@ void printModelInfo(const std::string& model_path) {
         }
         
     } catch (const Ort::Exception& e) {
-        std::cerr << "ONNX Runtime 错误: " << e.what() << std::endl;
+        std::cerr << "ONNX Runtime error: " << e.what() << std::endl;
     }
 }
 
 int main(int argc, char* argv[]) {
-    // 默认分析RetinaFace模型
+    // Default analysis of RetinaFace model
     std::string model_path = "../models/RetinaFace_resnet50_320.onnx";
     
     if (argc > 1) {
         model_path = argv[1];
     }
     
-    std::cout << "模型分析工具\n当前工作目录: " << std::filesystem::current_path() << std::endl;
+    std::cout << "Model Analysis Tool\nCurrent working directory: " << std::filesystem::current_path() << std::endl;
     printModelInfo(model_path);
     
-    // 如果有第二个参数，分析resnet100模型
+    // If there is a second argument, analyze the resnet100 model
     if (argc > 2) {
         std::string face_recognition_model = argv[2];
-        std::cout << "\n分析人脸识别模型: " << face_recognition_model << std::endl;
+        std::cout << "\nAnalyzing face recognition model: " << face_recognition_model << std::endl;
         printModelInfo(face_recognition_model);
     } else {
-        // 默认也分析人脸识别模型
+        // Default also analyzes the face recognition model
         std::string face_recognition_model = "../models/resnet100.onnx";
         if (std::filesystem::exists(face_recognition_model)) {
-            std::cout << "\n分析人脸识别模型: " << face_recognition_model << std::endl;
+            std::cout << "\nAnalyzing face recognition model: " << face_recognition_model << std::endl;
             printModelInfo(face_recognition_model);
         }
     }
@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-在CMakeLists.txt中添加此可执行文件：
+Add this executable file to CMakeLists.txt:
 
 ```cmake
 add_executable(face_detector_debug src/face_detector_debug.cpp)
@@ -130,152 +130,152 @@ target_link_libraries(face_detector_debug
 )
 ```
 
-在开始实现功能前，先下载并准备好必要的模型：
+Before implementing functionality, download and prepare the necessary models:
 
-1. RetinaFace_resnet50_320.onnx - 用于人脸检测和关键点定位
-2. resnet100.onnx - 用于人脸特征提取和识别
+1. RetinaFace_resnet50_320.onnx - For face detection and landmark localization
+2. resnet100.onnx - For face feature extraction and recognition
 
-将这些模型放在项目的models目录下。
+Place these models in the project's models directory.
 
-## 2. 基础摄像头测试
+## 2. Basic Camera Test
 
-请创建一个基础的摄像头测试程序 `camera_test.cpp`，验证以下功能：
-- 摄像头初始化
-- 图像采集
-- 基本GUI显示
-- 键盘交互（按q退出，按s保存图像）
+Create a basic camera test program `camera_test.cpp` to verify the following functionalities:
+- Camera initialization
+- Image acquisition
+- Basic GUI display
+- Keyboard interaction (press q to exit, press s to save images)
 
-确认摄像头正常工作后，我们将进行下一步。
+After confirming the camera works properly, we will proceed to the next step.
 
-## 3. 人脸检测测试
+## 3. Face Detection Test
 
-基于摄像头测试程序，创建 `face_detection_test.cpp`，集成以下功能：
-- 使用RetinaFace_resnet50_320.onnx模型进行人脸检测
-- 提取人脸关键点（facial landmarks）
-- 在UI上显示检测框和关键点
-- 显示检测时间和置信度
+Based on the camera test program, create `face_detection_test.cpp` to integrate the following functionalities:
+- Use RetinaFace_resnet50_320.onnx model for face detection
+- Extract facial landmarks
+- Display detection boxes and landmarks on the UI
+- Show detection time and confidence
 
-**验证要点**：确认人脸检测正常工作，能够准确标记人脸边界框和关键点。
+**Validation Points**: Ensure face detection works properly and accurately marks face bounding boxes and landmarks.
 
-## 4. 人脸对齐实现
+## 4. Face Alignment Implementation
 
-创建人脸对齐模块 `face_alignment.h/cpp`，实现以下功能：
-- 基于RetinaFace检测的关键点进行人脸对齐
-- 提供一致大小和位置的标准化人脸图像
-- 支持旋转、缩放和裁剪操作
+Create a face alignment module `face_alignment.h/cpp` to implement the following functionalities:
+- Perform face alignment based on facial landmarks detected by RetinaFace
+- Provide standardized face images with consistent size and position
+- Support rotation, scaling, and cropping operations
 
-创建测试程序 `face_alignment_test.cpp` 验证对齐功能是否有效。
+Create a test program `face_alignment_test.cpp` to verify the alignment functionality.
 
-**验证要点**：对比对齐前后的人脸图像，确认对齐后的图像面部特征位置一致。
+**Validation Points**: Compare pre- and post-alignment face images to ensure consistent facial feature positions in aligned images.
 
-## 5. 人脸特征提取与识别
+## 5. Face Feature Extraction and Recognition
 
-创建人脸特征提取和识别模块 `face_recognizer.h/cpp`，使用resnet100.onnx模型：
-- 提取对齐后人脸的特征向量
-- 计算特征向量之间的相似度
-- 定义匹配阈值
+Create a face feature extraction and recognition module `face_recognizer.h/cpp` using the resnet100.onnx model:
+- Extract feature vectors from aligned face images
+- Calculate similarity between feature vectors
+- Define matching thresholds
 
-创建测试程序 `face_recognition_test.cpp`，集成前面的人脸检测和对齐功能，并添加：
-- 人脸特征提取
-- 与数据库中的人脸进行匹配
-- 显示识别结果和相似度
+Create a test program `face_recognition_test.cpp` to integrate previous face detection and alignment functionalities, and add:
+- Face feature extraction
+- Matching with faces in the database
+- Display recognition results and similarity
 
-**验证要点**：系统能够正确识别已知人脸，并显示准确的相似度。
+**Validation Points**: Ensure the system correctly recognizes known faces and displays accurate similarity.
 
-## 6. 人脸数据库管理
+## 6. Face Database Management
 
-创建人脸数据库管理模块 `face_database.h/cpp`：
-- 支持添加、删除、查询人脸信息
-- 存储人脸特征向量和对应的名称
-- 提供持久化存储功能
+Create a face database management module `face_database.h/cpp`:
+- Support adding, deleting, and querying face information
+- Store face feature vectors and corresponding names
+- Provide persistent storage functionality
 
-创建两个工具程序：
-1. `face_enrollment.cpp` - 通过摄像头实时录入人脸
-2. `batch_enrollment.cpp` - 从照片文件批量录入人脸
+Create two utility programs:
+1. `face_enrollment.cpp` - Real-time face enrollment via camera
+2. `batch_enrollment.cpp` - Batch face enrollment from photo files
 
-**验证要点**：确认数据库能正确保存和加载人脸信息，两种录入方式都能有效工作。
+**Validation Points**: Ensure the database correctly saves and loads face information, and both enrollment methods work effectively.
 
-## 7. 电子铭牌主程序
+## 7. Electronic Nameplate Main Program
 
-最后，创建电子铭牌主程序 `nameplate_main.cpp`，集成所有功能：
-- 实时人脸检测和对齐
-- 人脸识别与匹配
-- 显示识别结果（电子铭牌显示在人脸的下方）
-- 美观的UI界面
-- 跟踪功能：检测是每几帧检测一次（如20帧），降低CPU使用率但保持电子铭牌的显示
+Finally, create the electronic nameplate main program `nameplate_main.cpp` to integrate all functionalities:
+- Real-time face detection and alignment
+- Face recognition and matching
+- Display recognition results (electronic nameplate displayed below the face)
+- Aesthetic UI interface
+- Tracking functionality: detect every few frames (e.g., 20 frames) to reduce CPU usage while maintaining nameplate display
 
-### 电子铭牌实现进展
+### Electronic Nameplate Implementation Progress
 
-在实现电子铭牌主程序时，经历了以下步骤和改进：
+During the implementation of the electronic nameplate main program, the following steps and improvements were made:
 
-1. **逐步实现与调试**
-   - 首先，实现了最基础的摄像头采集和显示，确保硬件工作正常
-   - 添加人脸检测功能，验证模型正常工作
-   - 集成人脸识别和铭牌显示，完成基础功能
-   - 通过摄像头分辨率设置为1280x720提高图像质量
+1. **Gradual Implementation and Debugging**
+   - Initially implemented basic camera acquisition and display to ensure hardware works properly
+   - Added face detection functionality to verify the model works correctly
+   - Integrated face recognition and nameplate display to complete basic functionality
+   - Improved image quality by setting camera resolution to 1280x720
 
-2. **稳定性问题排查**
-   - 初始版本尝试使用OpenCV跟踪器进行高级跟踪，但出现段错误
-   - 通过逐步简化系统，定位问题根源
-   - 最终使用简单的跟踪策略，通过跳帧检测实现稳定性
+2. **Stability Issue Troubleshooting**
+   - The initial version attempted to use OpenCV trackers for advanced tracking but encountered segmentation faults
+   - Simplified the system step by step to locate the root cause
+   - Ultimately used a simple tracking strategy with frame skipping detection for stability
 
-3. **性能优化**
-   - 设置`DETECT_INTERVAL = 20`，实现每20帧进行一次人脸检测和识别
-   - 在非检测帧中保持显示先前的检测结果
-   - 显著提高了系统帧率，同时降低CPU使用率
+3. **Performance Optimization**
+   - Set `DETECT_INTERVAL = 20` to perform face detection and recognition every 20 frames
+   - Maintain display of previous detection results during non-detection frames
+   - Significantly improved system frame rate while reducing CPU usage
 
-4. **用户界面设计**
-   - 实现简洁有效的电子铭牌设计，显示在人脸下方
-   - 不同颜色区分已知人脸和未知人脸
-   - 显示FPS和检测间隔信息，便于性能监控
+4. **User Interface Design**
+   - Implemented a simple and effective electronic nameplate design displayed below the face
+   - Used different colors to distinguish between known and unknown faces
+   - Displayed FPS and detection interval information for performance monitoring
 
-### 当前工作模式
+### Current Working Mode
 
-当前的系统使用"跳帧检测"策略，其工作原理是：
+The current system uses a "frame skipping detection" strategy, which works as follows:
 
-1. 每20帧进行一次完整的人脸检测和识别
-2. 在非检测帧中，继续显示之前检测到的人脸和识别结果
-3. 这种策略显著降低了CPU使用率，同时保持了良好的用户体验
+1. Perform complete face detection and recognition every 20 frames
+2. During non-detection frames, continue displaying previously detected faces and recognition results
+3. This strategy significantly reduces CPU usage while maintaining a good user experience
 
-检测和识别同步进行，每次检测帧都会执行人脸识别。系统没有实现复杂的跟踪算法，而是简单地保持显示最近一次的检测结果，这种做法虽然简单，但非常稳定可靠。
+Detection and recognition are synchronized, with face recognition performed on every detection frame. The system does not implement complex tracking algorithms but simply maintains the display of the most recent detection results. This approach, while simple, is very stable and reliable.
 
-### 后续改进方向
+### Future Improvement Directions
 
-1. **智能跟踪算法**
-   - 实现基于运动预测的位置更新
-   - 在非检测帧中使用速度估计来更新人脸位置
+1. **Intelligent Tracking Algorithm**
+   - Implement position updates based on motion prediction
+   - Use velocity estimation to update face positions in non-detection frames
 
-2. **分离检测和识别频率**
-   - 可以更频繁地进行人脸检测（如每3帧）
-   - 降低识别频率（如每5次检测进行一次识别）
-   - 这样可以保持位置更新的同时降低计算负担
+2. **Separate Detection and Recognition Frequencies**
+   - Perform face detection more frequently (e.g., every 3 frames)
+   - Reduce recognition frequency (e.g., perform recognition every 5 detections)
+   - This maintains position updates while reducing computational load
 
-3. **多人同时识别优化**
-   - 改进多人场景下的识别优先级
-   - 为不同人员设置不同的识别频率
+3. **Multi-Person Recognition Optimization**
+   - Improve recognition priorities in multi-person scenarios
+   - Set different recognition frequencies for different individuals
 
-4. **UI美化与增强**
-   - 添加渐变背景和圆角效果
-   - 显示人脸缩略图
-   - 优化字体和布局
+4. **UI Enhancement and Beautification**
+   - Add gradient backgrounds and rounded corners
+   - Display face thumbnails
+   - Optimize fonts and layouts
 
-通过这些进一步的优化，可以在保持系统稳定性的基础上，提高用户体验和性能表现.
+Through these further optimizations, we can improve user experience and performance while maintaining system stability.
 
-## 实现注意事项
+## Implementation Considerations
 
-1. 人脸检测使用 RetinaFace_resnet50_320.onnx 模型
-2. 人脸对齐基于检测的5点关键点进行
-3. 人脸识别使用 resnet100.onnx 模型
-4. UI提示使用英文，避免显示乱码
-5. 注重代码模块化，便于后续维护和扩展
-6. 各阶段都添加详细日志，便于调试和问题定位
+1. Use RetinaFace_resnet50_320.onnx model for face detection
+2. Perform face alignment based on 5-point facial landmarks from detection
+3. Use resnet100.onnx model for face recognition
+4. Use English for UI prompts to avoid encoding issues
+5. Focus on code modularity for easier maintenance and expansion
+6. Add detailed logging at each stage for debugging and issue localization
 
-## 系统优化建议
+## System Optimization Suggestions
 
-1. 考虑添加人脸活体检测，防止照片欺骗
-2. 实现多线程处理，提高系统响应速度
-3. 添加用户友好的人脸数据库管理界面
-4. 支持不同光照条件下的人脸识别
-5. 添加简单的人脸表情识别功能
+1. Consider adding face liveness detection to prevent photo spoofing
+2. Implement multi-threading to improve system response time
+3. Add user-friendly face database management interface
+4. Support face recognition under different lighting conditions
+5. Add simple facial expression recognition functionality
 
-通过逐步完成上述每个阶段，并在每个阶段后进行充分验证，我们可以构建一个稳定可靠的电子铭牌系统.
+By gradually completing each stage above and thoroughly validating after each phase, we can build a stable and reliable electronic nameplate system.
