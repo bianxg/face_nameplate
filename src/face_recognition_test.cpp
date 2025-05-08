@@ -60,7 +60,7 @@ int main() {
     FaceAlignment aligner(cv::Size(112, 112));
     
     // Initialize face recognizer with the correct model path
-    std::string recognizer_model_path = "../models/resnet100.onnx";
+    std::string recognizer_model_path = "../models/arcfaceresnet100-11-int8.onnx";
     FaceRecognizer recognizer(recognizer_model_path);
     
     // Create data directories if they don't exist
@@ -142,15 +142,6 @@ int main() {
                 // Normal recognition mode
                 // Extract features and recognize
                 std::vector<float> feature = recognizer.extractFeature(aligned_face);
-
-                // Debug: Print similarity scores for all database faces
-                const auto& face_db = recognizer.getFaces();
-                std::cout << "Compare scores: ";
-                for (const auto& db_face : face_db) {
-                    float sim = recognizer.compareFaces(feature, db_face.feature);
-                    std::cout << db_face.name << ":" << sim << " ";
-                }
-                std::cout << std::endl;
 
                 std::pair<std::string, float> result = recognizer.recognize(feature, recognition_threshold);
                 

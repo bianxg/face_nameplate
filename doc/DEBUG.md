@@ -1,4 +1,5 @@
 存在问题：不同人脸之间的相似度(点积)非常接近，很难区分不同人脸。
+Fix: The C++ version should remove the pixel value normalization step.
 
 ./face_detector_debug
 Model Analysis Tool

@@ -45,14 +45,6 @@ FaceDetector::FaceDetector(const std::string& model_path) {
         
         // Generate anchor boxes
         generatePriorBoxes();
-        
-        std::cout << "Face detector initialized with model: " << model_path << std::endl;
-        std::cout << "Input shape: [";
-        for (size_t i = 0; i < input_shape_.size(); i++) {
-            if (i > 0) std::cout << ", ";
-            std::cout << input_shape_[i];
-        }
-        std::cout << "]" << std::endl;
     }
     catch(const Ort::Exception& e) {
         std::cerr << "ONNX Runtime error: " << e.what() << std::endl;
@@ -180,12 +172,6 @@ void FaceDetector::generatePriorBoxes() {
                 }
             }
         }
-    }
-    
-    std::cout << "Generated " << priorbox_.size() << " anchor boxes" << std::endl;
-    if (priorbox_.size() != num_anchors_) {
-        std::cerr << "Warning: Expected " << num_anchors_ << " anchor boxes but generated " 
-                 << priorbox_.size() << std::endl;
     }
 }
 

@@ -36,3 +36,8 @@ build
 data
 models
 .vscode
+arcface/.ipynb_checkpoints/
+arcface/__pycache__/
+arcface/mtcnn-model/
+images/
+lfw/

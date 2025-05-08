@@ -171,11 +171,8 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Failed to align face");
             }
 
-            // 提取一次特征并打印
+            // Extract feature vector
             std::vector<float> feature = recognizer.extractFeature(aligned_face);
-            std::cout << "  Feature (first 10): ";
-            for (int i = 0; i < 10; ++i) std::cout << feature[i] << " ";
-            std::cout << std::endl;
 
             // Create directory for this person
             std::filesystem::path person_dir = data_dir / name;

@@ -37,10 +37,10 @@ public:
     bool addFace(const std::string& name, const std::vector<float>& feature, const cv::Mat& thumbnail);
     
     // Recognize a face from the database
-    std::pair<std::string, float> recognize(const cv::Mat& aligned_face, float threshold = 0.6f) const;
+    std::pair<std::string, float> recognize(const cv::Mat& aligned_face, float threshold = 0.5f) const;
     
     // Recognize a face using precomputed features
-    std::pair<std::string, float> recognize(const std::vector<float>& feature, float threshold = 0.6f) const;
+    std::pair<std::string, float> recognize(const std::vector<float>& feature, float threshold = 0.5f) const;
     
     // Save the database to a file
     bool saveFaceDatabase(const std::string& file_path) const;
