@@ -1,3 +1,5 @@
+存在问题：不同人脸之间的相似度(点积)非常接近，很难区分不同人脸。
+
 ./face_detector_debug
 Model Analysis Tool
 Analyzing model: ../models/RetinaFace_resnet50_320.onnx
@@ -66,3 +68,6 @@ Output #0 (fc1) data type: float
 2. 将图像输入到模型中，获取512维特征向量
 3. 通过计算特征向量之间的相似度来进行人脸验证或识别
 
+
+
+疑问1：进行人脸检测的时候，预处理把要识别的图像缩放到模型输入的大小，两者宽纵比不同，对人脸检测和人脸对齐有影响吗？
