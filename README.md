@@ -140,6 +140,9 @@ The system requires two ONNX models:
 
 Place these models in the `models/` directory before running the applications.
 
+https://gitee.com/wirelesser/rknn_model_zoo/blob/main/examples/RetinaFace/README.md
+https://github.com/onnx/models/tree/main/validated/vision/body_analysis/arcface
+
 ## Configuration
 
 Detection interval and other parameters can be adjusted in the source code:

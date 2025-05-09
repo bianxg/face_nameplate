@@ -158,7 +158,7 @@ int main() {
             
             if (do_detection) {
                 // Run face detection on this frame
-                std::vector<FaceInfo> detected_faces = detector.detect(frame);
+                std::vector<FaceInfo> detected_faces = detector.detect(frame,0.7, 0.4, 3);
                 
                 // Clear the tracked faces list and update with new detections
                 tracked_faces.clear();
