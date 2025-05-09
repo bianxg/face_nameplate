@@ -2,6 +2,10 @@
 
 An AI-powered face recognition system that displays personalized nameplates below identified faces. The system uses deep learning models to detect faces, perform facial recognition, and display information in real-time.
 
+## Sponsors
+
+This project is sponsored by [AgileVideo](https://www.agilevideovc.com).
+
 ## Features
 
 - Real-time face detection using RetinaFace
