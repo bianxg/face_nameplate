@@ -1,6 +1,6 @@
-# Face Nameplate System
+# Smart Name Tags
 
-An AI-powered face recognition system that displays personalized nameplates below identified faces. The system uses deep learning models to detect faces, perform facial recognition, and display information in real-time.
+An AI-powered face recognition system that displays personalized namep tags below identified faces. The system uses deep learning models to detect faces, perform facial recognition, and display information in real-time.
 
 ## Sponsors
 
@@ -11,7 +11,7 @@ This project is sponsored by [AgileVideo](https://www.agilevideovc.com).
 - Real-time face detection using RetinaFace
 - Face alignment for robust recognition
 - Face recognition with customizable database
-- Personalized nameplates displayed below faces
+- Personalized name tags displayed below faces
 - Interactive enrollment mode for adding new faces
 - Optimized performance with configurable detection intervals
 
@@ -52,8 +52,8 @@ sudo cp -r onnxruntime-linux-x64-1.14.1/lib/* /usr/local/lib/
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/bianxg/face_nameplate.git
-cd face_nameplate
+git clone https://github.com/bianxg/face_nametag.git
+cd face_nametag
 ```
 
 ## Building the Project
@@ -110,7 +110,7 @@ Enroll multiple faces from image files:
 ./batch_enrollment /path/to/images
 ```
 
-### 5. Main Nameplate Application
+### 5. Main Name Tag Application
 
 The main application with all features:
 
