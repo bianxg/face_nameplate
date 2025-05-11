@@ -1,6 +1,8 @@
 # Smart Name Tags
 
-An AI-powered face recognition system that displays personalized namep tags below identified faces. The system uses deep learning models to detect faces, perform facial recognition, and display information in real-time.
+An AI-powered face recognition system that displays personalized name tags below identified faces. The system uses deep learning models to detect faces, perform facial recognition, and display information in real-time.
+
+Name tags can automatically identifies in-room participants using facial recognition and displays their names on-screen during meetings.
 
 ## Sponsors
 
