@@ -114,7 +114,7 @@ void printModelInfo(const std::string& model_path) {
 
 int main(int argc, char* argv[]) {
     // Default resnet model path
-    std::string model_path = "../models/resnet100.onnx";
+    std::string model_path = "../models/w600k_mbf.onnx";
     
     if (argc > 1) {
         model_path = argv[1];

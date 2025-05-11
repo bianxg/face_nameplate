@@ -60,8 +60,9 @@ int main() {
     FaceAlignment aligner(cv::Size(112, 112));
     
     // Initialize face recognizer with the correct model path
-    std::string recognizer_model_path = "../models/arcfaceresnet100-11-int8.onnx";
-    FaceRecognizer recognizer(recognizer_model_path);
+    //std::string recognizer_model_path = "../models/arcfaceresnet100-11-int8.onnx";
+    std::string recognizer_model_path = "../models/w600k_mbf.onnx";
+    FaceRecognizer recognizer(recognizer_model_path,1);
     
     // Create data directories if they don't exist
     std::filesystem::path data_dir = "../data/faces";

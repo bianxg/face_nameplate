@@ -6,8 +6,9 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <thread> // Required for std::thread::hardware_concurrency
 
-FaceRecognizer::FaceRecognizer(const std::string& model_path) {
+FaceRecognizer::FaceRecognizer(const std::string& model_path, int intra_op_num_threads, int inter_op_num_threads) {
     try {
         // Create ONNX Runtime environment
         env_ = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "FaceRecognizer");
@@ -15,17 +16,69 @@ FaceRecognizer::FaceRecognizer(const std::string& model_path) {
         // Session options
         Ort::SessionOptions session_options;
         session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+
+        // Set thread counts
+        // intra_op_num_threads: Number of threads for intra-operator parallelism.
+        //   - Controls the number of threads used within a single operator (e.g., convolution, matrix multiplication).
+        //   - When set to 0, ONNX Runtime typically uses a default value (often the number of physical cores).
+        //   - For CPU-intensive operations, setting this to the number of physical cores might yield good performance.
+        // inter_op_num_threads: Number of threads for inter-operator parallelism.
+        //   - Controls the number of independent operators that can be executed in parallel.
+        //   - If the model has multiple branches or independent parts that can be executed in parallel, increasing this value might improve throughput.
+        //   - When set to 0, ONNX Runtime typically uses a default value (often 1 or a small number).
+        //   - Excessively high values can lead to thread switching overhead, potentially reducing performance.
+        //
+        // Recommended configuration:
+        //   - Initial attempt: intra_op_num_threads = 0 (or number of physical cores), inter_op_num_threads = 1.
+        //   - Perform performance analysis and adjustments based on the specific model and hardware.
+        //   - For example, for a CPU with 4 physical cores, you could try:
+        //     - intra_op_num_threads = 4, inter_op_num_threads = 1
+        //     - intra_op_num_threads = 2, inter_op_num_threads = 2
+        //   - The optimal configuration depends on the computational characteristics of the model and the system's parallel processing capabilities.
+
+        if (intra_op_num_threads > 0) {
+            session_options.SetIntraOpNumThreads(intra_op_num_threads);
+            std::cout << "Setting intra_op_num_threads to: " << intra_op_num_threads << std::endl;
+        } else {
+            // Default to number of physical cores if available, otherwise let ONNX decide
+            unsigned int core_count = std::thread::hardware_concurrency();
+            if (core_count > 0) {
+                session_options.SetIntraOpNumThreads(core_count);
+                std::cout << "Defaulting intra_op_num_threads to hardware concurrency: " << core_count << std::endl;
+            } else {
+                 std::cout << "Could not determine hardware concurrency, letting ONNX Runtime decide intra_op_num_threads." << std::endl;
+            }
+        }
+
+        if (inter_op_num_threads > 0) {
+            session_options.SetInterOpNumThreads(inter_op_num_threads);
+            std::cout << "Setting inter_op_num_threads to: " << inter_op_num_threads << std::endl;
+        } else {
+            // Default to 1 for inter_op_num_threads if not specified
+            session_options.SetInterOpNumThreads(1);
+            std::cout << "Defaulting inter_op_num_threads to 1." << std::endl;
+        }
         
         // Create session
         session_ = std::make_unique<Ort::Session>(*env_, model_path.c_str(), session_options);
         
         // Get model info
         Ort::AllocatorWithDefaultOptions allocator;
-        
-        // Based on face_recognizer_debug, the input node is named "data"
-        // and the output node is named "fc1"
-        input_names_str_.push_back("data");
-        output_names_str_.push_back("fc1");
+
+        // Dynamically configure input/output node names and feature dimension
+        if (model_path.find("arcfaceresnet100-11-int8") != std::string::npos) {
+            input_names_str_.push_back("data"); // Original model input node
+            output_names_str_.push_back("fc1"); // Original model output node
+            feature_dim_ = 512; // Original model feature dimension
+        } else if (model_path.find("w600k_mbf") != std::string::npos) {
+            input_names_str_.push_back("input.1"); // New model input node
+            output_names_str_.push_back("516");    // New model output node
+            feature_dim_ = 512; // New model feature dimension
+        } else {
+            throw std::runtime_error("Unsupported model: " + model_path);
+        }
+
+        checkNormalizationRequirement();
         
         // Get input shape information
         Ort::TypeInfo type_info = session_->GetInputTypeInfo(0);
@@ -42,9 +95,6 @@ FaceRecognizer::FaceRecognizer(const std::string& model_path) {
             input_height_ = 112;
             input_width_ = 112;
         }
-        
-        // From the debug output, we know the feature dimension is 512
-        feature_dim_ = 512;
         
         // Set up the input and output name pointers
         for (const auto& name : input_names_str_) {
@@ -81,7 +131,12 @@ void FaceRecognizer::preprocess(const cv::Mat& face, float* input_data) {
     cv::Mat float_mat;
     resized_face.convertTo(float_mat, CV_32FC3); // Now float_mat is in range [0, 255]
 
-    // Note: Do not here Normalize to [0, 1] and subtract mean values !
+    // Normalize to [0, 1] if the model is w600k_mbf
+    //if (std::find(input_names_str_.begin(), input_names_str_.end(), "input.1") != input_names_str_.end()) {
+    if(requires_normalization_) {
+        // Normalize to [0, 1]
+        float_mat /= 255.0f;
+    }
 
     // Reorder to NCHW layout and ensure BGR channel order for the model
     // NCHW layout: [batch, channels, height, width]
@@ -396,4 +451,35 @@ bool FaceRecognizer::loadFaceDatabase(const std::string& file_path) {
     index_file.close();
     std::cout << "Loaded " << face_count << " faces from directory database" << std::endl;
     return face_count > 0;
+}
+
+void FaceRecognizer::checkNormalizationRequirement(){
+    try {
+        // First check if we're using arcfaceresnet100-11-int8 model which should not use normalization
+        if (std::find(input_names_str_.begin(), input_names_str_.end(), "data") != input_names_str_.end()) {
+            std::cout << "Using arcfaceresnet100-11-int8 model. Normalization disabled." << std::endl;
+            requires_normalization_ = false;
+            return;
+        }
+
+        // For other models, check based on input type
+        Ort::TypeInfo type_info = session_->GetInputTypeInfo(0);
+        auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
+
+        // Check data type
+        ONNXTensorElementDataType input_type = tensor_info.GetElementType();
+        if (input_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
+            std::cout << "Model input type is FLOAT. Normalization to [0, 1] may be required." << std::endl;
+            requires_normalization_ = true;
+        } else if (input_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8) {
+            std::cout << "Model input type is UINT8. Normalization may not be required." << std::endl;
+            requires_normalization_ = false;
+        } else {
+            std::cout << "Model input type is " << input_type << ". Check model documentation for preprocessing requirements." << std::endl;
+        }
+
+        // Additional checks can be added here if the model provides metadata or preprocessing hints
+    } catch (const Ort::Exception& e) {
+        std::cerr << "Error while checking normalization requirement: " << e.what() << std::endl;
+    }
 }

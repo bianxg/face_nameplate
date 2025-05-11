@@ -141,11 +141,13 @@ Controls:
 The system requires two ONNX models:
 1. `RetinaFace_resnet50_320.onnx` - For face detection and landmark location
 2. `arcfaceresnet100-8.onnx` - For face recognition (feature extraction)
+3. `w600k_mbf.onnx` - For face recognition (feature extraction)
 
 Place these models in the `models/` directory before running the applications.
 
 https://gitee.com/wirelesser/rknn_model_zoo/blob/main/examples/RetinaFace/README.md
 https://github.com/onnx/models/tree/main/validated/vision/body_analysis/arcface
+https://github.com/ruhyadi/vision-fr
 
 ## Configuration
 
@@ -156,3 +158,13 @@ Detection interval and other parameters can be adjusted in the source code:
 ## License
 
 MIT License
+
+## Acknowledgements
+
+This project makes use of the following open-source projects and resources:
+
+- [RetinaFace](https://github.com/biubug6/Pytorch_Retinaface) - Face detection model.
+- [ArcFace](https://github.com/deepinsight/insightface) - Face recognition model.
+- [RKNN Model Zoo](https://gitee.com/wirelesser/rknn_model_zoo) - Pretrained models for edge devices.
+- [ONNX Models](https://github.com/onnx/models) - Collection of pre-trained ONNX models.
+- [Vision-FR](https://github.com/ruhyadi/vision-fr) - Vision-based face recognition resources.

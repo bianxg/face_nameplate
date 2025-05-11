@@ -20,7 +20,13 @@ struct FaceFeature {
 
 class FaceRecognizer {
 public:
-    FaceRecognizer(const std::string& model_path);
+    // Constructor
+    // model_path: Path to the ONNX model file.
+    // intra_op_num_threads: Number of threads for intra-operator parallelism. 
+    //                       0 means ONNX Runtime default (often number of physical cores).
+    // inter_op_num_threads: Number of threads for inter-operator parallelism.
+    //                       0 means ONNX Runtime default (often 1).
+    FaceRecognizer(const std::string& model_path, int intra_op_num_threads = 0, int inter_op_num_threads = 0);
     ~FaceRecognizer();
     
     // Extract features from aligned face image
@@ -57,6 +63,9 @@ public:
     // Compute the mean feature vector from a list of feature vectors
     std::vector<float> meanFeature(const std::vector<std::vector<float>>& features) const;
 
+    // Check if normalization is required for the model
+    void checkNormalizationRequirement();
+
 private:
     // ONNX Runtime components
     std::unique_ptr<Ort::Env> env_;
@@ -82,6 +91,9 @@ private:
     // Timing information
     float inference_time_ = 0.0f;
     
+    // Flag to indicate if normalization is required
+    bool requires_normalization_ = false;
+
     // Pre-process the aligned face for the model
     void preprocess(const cv::Mat& face, float* input_data);
     

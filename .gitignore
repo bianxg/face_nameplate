@@ -34,7 +34,7 @@
 
 build
 data
-models
+models/arcfaceresnet100-11-int8.onnx
 .vscode
 arcface/.ipynb_checkpoints/
 arcface/__pycache__/

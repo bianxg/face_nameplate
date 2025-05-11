@@ -39,8 +39,10 @@ int main(int argc, char* argv[]) {
     std::filesystem::path db_file = "../data/faces/face_database.txt";
     
     // Initialize models
-    std::string detector_model = "../models/RetinaFace_resnet50_320.onnx";
-    std::string recognizer_model = "../models/arcfaceresnet100-8.onnx";
+    std::string detector_model = "../models/RetinaFace_mobile320.onnx";
+    
+    //std::string recognizer_model = "../models/arcfaceresnet100-11-int8.onnx";
+    std::string recognizer_model = "../models/w600k_mbf.onnx";
     
     std::cout << "Initializing face detection and recognition models..." << std::endl;
     

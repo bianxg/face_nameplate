@@ -103,7 +103,7 @@ int main() {
         std::cout << "Initializing face alignment and recognition..." << std::endl;
         FaceAlignment aligner(cv::Size(112, 112));
         
-        std::string recognizer_model_path = "../models/arcfaceresnet100-8.onnx";
+        std::string recognizer_model_path = "../models/w600k_mbf.onnx";
         FaceRecognizer recognizer(recognizer_model_path);
         
         // Load face database
