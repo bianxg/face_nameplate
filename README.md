@@ -4,6 +4,8 @@ An AI-powered face recognition system that displays personalized name tags below
 
 Name tags can automatically identifies in-room participants using facial recognition and displays their names on-screen during meetings.
 
+<img src="name_tags.jpg" alt="Smart name tags" width="320"/>
+
 ## Sponsors
 
 This project is sponsored by [AgileVideo](https://www.agilevideovc.com).
