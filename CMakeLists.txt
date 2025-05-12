@@ -5,6 +5,13 @@ project(face_nameplate)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Conditionally link stdc++fs for GCC < 9 for std::filesystem support
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+        link_libraries(stdc++fs)
+    endif()
+endif()
+
 # Set RPATH handling for portability of build artifacts
 # This ensures that executables can find their .so dependencies when copied elsewhere.
 set(CMAKE_SKIP_BUILD_RPATH FALSE)          # Generate RPATH for targets in the build tree.
