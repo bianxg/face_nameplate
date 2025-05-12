@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iostream>
 #include <chrono>
+#include <opencv2/dnn.hpp> // Added for cv::dnn::blobFromImage
+#include <cstring>          // Added for std::memcpy
 
 FaceDetector::FaceDetector(const std::string& model_path) {
     try {
@@ -113,24 +115,17 @@ std::vector<FaceInfo> FaceDetector::detect(const cv::Mat& image, float conf_thre
 }
 
 void FaceDetector::preprocess(const cv::Mat& image, float* input_data) {
-    // Resize and normalize image
-    cv::Mat resized;
-    cv::resize(image, resized, cv::Size(input_width_, input_height_));
-    
-    // Convert to float and normalize
-    cv::Mat float_mat;
-    resized.convertTo(float_mat, CV_32FC3);
-    
-    // RetinaFace uses BGR order
-    for (int h = 0; h < input_height_; h++) {
-        for (int w = 0; w < input_width_; w++) {
-            for (int c = 0; c < 3; c++) {
-                // NCHW layout
-                input_data[c * input_height_ * input_width_ + h * input_width_ + w] = 
-                    float_mat.at<cv::Vec3f>(h, w)[c] - mean_vals_[c];
-            }
-        }
-    }
+    // Use cv::dnn::blobFromImage for optimized preprocessing
+    // It handles resizing, mean subtraction, and conversion to NCHW float tensor
+    cv::Mat blob;
+    cv::dnn::blobFromImage(image, blob, 1.0, cv::Size(input_width_, input_height_), 
+                           cv::Scalar(mean_vals_[0], mean_vals_[1], mean_vals_[2]), 
+                           false, false, CV_32F);
+
+    // Copy the blob data to the input_data buffer
+    // The blob is already in NCHW layout and CV_32F type
+    // Its size is [1, 3, input_height_, input_width_]
+    std::memcpy(input_data, blob.ptr<float>(), blob.total() * sizeof(float));
 }
 
 void FaceDetector::generatePriorBoxes() {
