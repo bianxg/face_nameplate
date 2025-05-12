@@ -5,6 +5,22 @@ project(face_nameplate)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Set RPATH handling for portability of build artifacts
+# This ensures that executables can find their .so dependencies when copied elsewhere.
+set(CMAKE_SKIP_BUILD_RPATH FALSE)          # Generate RPATH for targets in the build tree.
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)   # Use CMAKE_INSTALL_RPATH for build tree targets as well.
+                                           # This means RPATH settings for installation apply to build tree.
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE) # Add directories from link_directories() and find_library()
+                                           # (e.g., ONNX_RUNTIME_DIR/lib) to the RPATH of targets.
+
+# Define RPATH entries for executables.
+# $ORIGIN allows finding libraries relative to the executable's location.
+#   - "$ORIGIN": For libraries in the same directory as the executable.
+#   - "$ORIGIN/../lib": For libraries in a 'lib' subdirectory relative to the executable's directory.
+# This helps locate libface_core.so if it's copied alongside executables.
+# For external libraries like onnxruntime, CMAKE_INSTALL_RPATH_USE_LINK_PATH should handle them.
+set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib")
+
 # Find required packages
 find_package(OpenCV REQUIRED)
 # Update ONNXRuntime path to match your system
